@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Alert, Linking, Pressable, ScrollView, Share, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { announcements, directionsUrl, events, formatEventTime, matches, places, services } from './content';
+import { directionsUrl, formatEventTime, matches } from './content';
+import { useCampusContent } from './campus-content';
 
 const tabs = ['Home', 'Explore', 'What’s On', 'Services'] as const;
 type Tab = typeof tabs[number];
@@ -30,6 +31,8 @@ function Row({ title, subtitle, onPress }: { title: string; subtitle: string; on
 
 export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) {
   const router = useRouter();
+  const { content: { places, events, services, announcements }, status, retry } = useCampusContent();
+  const available = status === 'ready' || status === 'sample';
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
   const place = detail?.kind === 'place' ? places.find(item => item.id === detail.id) : undefined;
@@ -38,7 +41,8 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
   const venue = event && places.find(item => item.id === event.placeId);
   const office = service && places.find(item => item.id === service.placeId);
   const officialUrl = service?.officialUrl;
-  const upcomingEvents = events.filter(item => Date.parse(item.startsAt) >= Date.now());
+  const mapUrl = place?.mapUrl ?? (place?.mapQuery && directionsUrl(place.mapQuery));
+  const upcomingEvents = events.filter(item => Date.parse(item.endsAt ?? item.startsAt) >= Date.now());
 
   function open(kind: Detail['kind'], id: string) {
     const pathname = kind === 'place' ? '/place/[id]' : kind === 'event' ? '/event/[id]' : '/service/[id]';
@@ -48,25 +52,27 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
   const visiblePlaces = places.filter(item => (tab !== 'Explore' || category === 'All' || item.category === category) && matches(query, [item.name, item.category, ...item.aliases]));
   const visibleServices = services.filter(item => matches(query, [item.name, item.description, item.category]));
   const searching = query.trim().length > 0;
-  const showPlaces = !detail && (tab === 'Explore' || (tab === 'Home' && searching));
-  const showServices = !detail && (tab === 'Services' || (tab === 'Home' && searching));
-  const showEvents = !detail && (tab === 'What’s On' || (tab === 'Home' && !searching));
+  const showPlaces = available && !detail && (tab === 'Explore' || (tab === 'Home' && searching));
+  const showServices = available && !detail && (tab === 'Services' || (tab === 'Home' && searching));
+  const showEvents = available && !detail && (tab === 'What’s On' || (tab === 'Home' && !searching));
 
   return (
     <SafeAreaView style={styles.screen} edges={detail ? ['left', 'right', 'bottom'] : ['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" />
       <ScrollView key={detail ? detail.kind + detail.id : tab} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {!detail && tab === 'Home' && <Text style={styles.eyebrow}>UNIPORT</Text>}
-        <Text accessibilityRole="header" style={styles.heading}>{place?.name ?? event?.name ?? service?.name ?? (detail ? 'Listing unavailable' : tab === 'Home' ? 'Campus Guide' : tab)}</Text>
-        {!detail && <Text style={styles.body}>Prototype · sample campus listings</Text>}
+        <Text accessibilityRole="header" style={styles.heading}>{place?.name ?? event?.name ?? service?.name ?? (detail ? (available ? 'Listing unavailable' : 'Campus Guide') : tab === 'Home' ? 'Campus Guide' : tab)}</Text>
+        {status === 'sample' && !detail && <Text style={styles.body}>Prototype · sample campus listings</Text>}
+        {status === 'loading' && <Text accessibilityLiveRegion="polite" style={styles.body}>Loading campus listings…</Text>}
+        {status === 'error' && <Row title="Try again" subtitle="Campus listings couldn’t load." onPress={retry} />}
 
-        {!detail && tab !== 'What’s On' && (
+        {available && !detail && tab !== 'What’s On' && (
           <TextInput style={styles.input} value={query} onChangeText={setQuery} autoCorrect={false}
             accessibilityLabel="Search campus guide" placeholder={tab === 'Explore' ? 'Search places' : tab === 'Services' ? 'Search services' : 'Find a place or service'}
             placeholderTextColor="#536987" />
         )}
 
-        {!detail && tab === 'Explore' && <View style={styles.filters}>
+        {available && !detail && tab === 'Explore' && <View style={styles.filters}>
           {['All', ...new Set(places.map(item => item.category))].map(item => (
             <Pressable key={item} accessibilityRole="button" accessibilityState={{ selected: category === item }}
               onPress={() => setCategory(item)} style={[styles.filter, category === item && styles.selected]}>
@@ -80,7 +86,9 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
         {showServices && visibleServices.map(item => (
           <Row key={item.id} title={item.name} subtitle={item.description} onPress={() => open('service', item.id)} />
         ))}
-        {searching && !detail && ((!showPlaces || !visiblePlaces.length) && (!showServices || !visibleServices.length)) &&
+        {showPlaces && !searching && visiblePlaces.length === 0 && <Text style={styles.body}>No places in this category.</Text>}
+        {showServices && !searching && visibleServices.length === 0 && <Text style={styles.body}>No services listed.</Text>}
+        {available && searching && !detail && ((!showPlaces || !visiblePlaces.length) && (!showServices || !visibleServices.length)) &&
           <Text style={styles.body}>No matches. Try another name.</Text>}
 
         {showEvents && <>
@@ -94,7 +102,11 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
 
         {showEvents && tab === 'Home' && <>
           <Text style={styles.section}>Campus notices</Text>
-          {announcements.map(item => (
+          {announcements.length === 0 && <Text style={styles.body}>No campus notices.</Text>}
+          {announcements.map(item => item.sourceUrl ? (
+            <Row key={item.id} title={item.title} subtitle={item.summary}
+              onPress={() => { if (item.sourceUrl) void openLink(item.sourceUrl); }} />
+          ) : (
             <View key={item.id} style={styles.row}>
               <View style={styles.rowText}>
                 <Text style={styles.label}>{item.title}</Text>
@@ -108,9 +120,10 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
           <Text style={styles.badge}>{event.cost} · {formatEventTime(event.startsAt)}</Text>
           <Text style={styles.body}>{event.description}</Text>
           <Text style={styles.body}>Organiser · {event.organiser}</Text>
+          {!venue && event.externalVenue && <Text style={styles.body}>Venue · {event.externalVenue}</Text>}
           {venue && <Row title="View venue" subtitle={venue.name} onPress={() => open('place', venue.id)} />}
           <Row title="Share event" subtitle="Open the phone’s share options" onPress={() => {
-            void Share.share({ message: event.name + ' · ' + formatEventTime(event.startsAt) + ' · Campus Guide prototype' })
+            void Share.share({ message: event.name + ' · ' + formatEventTime(event.startsAt) + ' · UNIPORT Campus Guide' })
               .catch(() => Alert.alert('Couldn’t share the event', 'Try again.'));
           }} />
         </>}
@@ -118,6 +131,7 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
         {service && <>
           <Text style={styles.badge}>{service.category}</Text>
           <Text style={styles.body}>{service.description}</Text>
+          {service.contact && <Text style={styles.body}>{service.contact}</Text>}
           {officialUrl && <Row title="Open official website" subtitle="Opens in your browser"
             onPress={() => void openLink(officialUrl)} />}
           {office && <Row title="View office" subtitle={office.name} onPress={() => open('place', office.id)} />}
@@ -129,7 +143,7 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
           <Text style={styles.body}>{place.landmark}</Text>
           <Text style={styles.section}>Directions</Text>
           <Text style={styles.body}>{place.directions}</Text>
-          <Row title="Open in Maps" subtitle="Search for this place in Google Maps" onPress={() => void openLink(directionsUrl(place.mapQuery))} />
+          {mapUrl && <Row title="Open in Maps" subtitle="Opens in your browser" onPress={() => void openLink(mapUrl)} />}
         </>}
       </ScrollView>
     </SafeAreaView>

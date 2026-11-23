@@ -1,4 +1,35 @@
-export const places = [
+export type Place = {
+  id: string;
+  name: string;
+  aliases: readonly string[];
+  category: string;
+  campusArea: string;
+  landmark: string;
+  directions: string;
+  mapQuery?: string;
+  mapUrl?: string;
+};
+
+export type CampusEvent = {
+  id: string;
+  name: string;
+  startsAt: string;
+  endsAt?: string;
+  cost: string;
+  organiser: string;
+  description: string;
+  placeId?: string;
+  externalVenue?: string;
+};
+
+export type Announcement = {
+  id: string;
+  title: string;
+  summary: string;
+  sourceUrl?: string;
+};
+
+export const places: readonly Place[] = [
   { id: 'library', name: 'University Library', aliases: ['library', 'reading room'], category: 'Study', campusArea: 'Campus area to be verified',
     landmark: 'Landmark to be verified', directions: 'Campus walking directions will be added after a site visit.',
     mapQuery: 'University of Port Harcourt Library' },
@@ -7,12 +38,12 @@ export const places = [
     mapQuery: 'University of Port Harcourt Student Affairs' },
 ] as const;
 
-export const events = [
+export const events: readonly CampusEvent[] = [
   { id: 'tech-meetup', name: 'Tech Meetup', startsAt: '2026-12-04T14:00:00+01:00', cost: 'Free', organiser: 'Sample student tech club',
     description: 'A student meetup concept for sharing projects and meeting other builders.', placeId: 'library' },
 ] as const;
 
-export const announcements = [
+export const announcements: readonly Announcement[] = [
   { id: 'pilot-listings', title: 'Campus Guide preview',
     summary: 'The listings in this preview are samples. Confirm locations before travelling.' },
 ] as const;
@@ -30,13 +61,14 @@ export function formatEventTime(startsAt: string) {
   return campusDateTime.format(new Date(startsAt)) + ' WAT';
 }
 
-type Service = {
+export type Service = {
   id: string;
   name: string;
   category: string;
   description: string;
   placeId?: string;
   officialUrl?: string;
+  contact?: string;
 };
 
 export const services: readonly Service[] = [
