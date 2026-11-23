@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Campus Guide",
+    "slug": "uniport-campus-guide",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "app.campusguide.uniport"
+    },
+    "ios": {
+      "bundleIdentifier": "app.campusguide.uniport"
+    },
+    "scheme": "uniport-campus-guide",
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
