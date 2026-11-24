@@ -8,10 +8,10 @@ Use Node.js 22 or later. Run `npm ci` and `npm start` from the project root, the
 
 - Run `npm run typecheck` to check TypeScript.
 - Run `npm run bundle:android` to generate the Android JavaScript bundle in `dist/`.
-- Try **What’s On → Tech Meetup → View venue → Open in Maps** with a device date before the sample event on 4 December 2026.
-- Search for **reading room** in Explore to find the University Library. You can also reach the same place page through **Services → Library → View office**.
+- Open **What’s On → University news and events** to check the university’s latest announcements.
+- Search for **reading room** in Explore to find the Donald E. U. Ekong Library. You can also reach the same place page through **Services → Library services → View location**.
 
-The bundled listings are demonstration data. Verify campus areas, landmarks, and directions before a pilot. The bundled content loads locally when both Supabase variables are unset.
+The bundled directory links to university sources and loads locally when both Supabase variables are unset. Directions are campus-level guidance. Where the guide opens a Maps search, confirm the suggested destination before travelling.
 
 
 ## Connect Supabase
