@@ -17,20 +17,23 @@ async function openLink(url: string) {
   }
 }
 
-function Row({ title, subtitle, onPress }: { title: string; subtitle: string; onPress: () => void }) {
+function Row({ title, subtitle, onPress, primary = false }: {
+  title: string; subtitle: string; onPress: () => void; primary?: boolean;
+}) {
   return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={styles.row}>
+    <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [styles.row, primary && styles.primaryRow, pressed && styles.pressed]}>
       <View style={styles.rowText}>
-        <Text style={styles.label}>{title}</Text>
-        <Text style={styles.body}>{subtitle}</Text>
+        <Text style={[styles.label, primary && styles.primaryTitle]}>{title}</Text>
+        <Text style={[styles.body, primary && styles.primarySubtitle]}>{subtitle}</Text>
       </View>
-      <Text style={styles.label}>›</Text>
+      <Text accessible={false} style={[styles.chevron, primary && styles.primaryTitle]}>›</Text>
     </Pressable>
   );
 }
 
 export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) {
   const router = useRouter();
+  const home = !detail && tab === 'Home';
   const { content: { places, events, services, announcements }, status, retry } = useCampusContent();
   const showCampusPhoto = status === 'sample' && tab === 'Home' && !detail;
   const showMeetupPhoto = status === 'sample' && detail?.kind === 'event' && detail.id === 'tech-meetup';
@@ -62,17 +65,18 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
     <SafeAreaView style={styles.screen} edges={detail ? ['left', 'right', 'bottom'] : ['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" />
       <ScrollView key={detail ? detail.kind + detail.id : tab} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        {!detail && tab === 'Home' && <Text style={styles.eyebrow}>UNIPORT</Text>}
-        <Text accessibilityRole="header" style={styles.heading}>{place?.name ?? event?.name ?? service?.name ?? (detail ? (available ? 'Listing unavailable' : 'Campus Guide') : tab === 'Home' ? 'Campus Guide' : tab)}</Text>
-        {status === 'sample' && !detail && <Text style={styles.body}>Prototype · sample campus listings</Text>}
+        <View style={[styles.header, home && styles.homeHeader]}>
+          {home && <Text style={styles.eyebrow}>UNIPORT</Text>}
+          <Text accessibilityRole="header" style={[styles.heading, home && styles.homeTitle]}>{place?.name ?? event?.name ?? service?.name ?? (detail ? (available ? 'Listing unavailable' : 'Campus Guide') : tab === 'Home' ? 'Campus Guide' : tab)}</Text>
+          {available && !detail && tab !== 'What’s On' && (
+            <TextInput style={styles.input} value={query} onChangeText={setQuery} autoCorrect={false}
+              accessibilityLabel="Search campus guide" placeholder={tab === 'Explore' ? 'Search places' : tab === 'Services' ? 'Search services' : 'Find a place or service'}
+              placeholderTextColor="#536987" />
+          )}
+        </View>
+        {status === 'sample' && !detail && <Text style={styles.previewLabel}>Preview · sample campus listings</Text>}
         {status === 'loading' && <Text accessibilityLiveRegion="polite" style={styles.body}>Loading campus listings…</Text>}
         {status === 'error' && <Row title="Try again" subtitle="Campus listings couldn’t load." onPress={retry} />}
-
-        {available && !detail && tab !== 'What’s On' && (
-          <TextInput style={styles.input} value={query} onChangeText={setQuery} autoCorrect={false}
-            accessibilityLabel="Search campus guide" placeholder={tab === 'Explore' ? 'Search places' : tab === 'Services' ? 'Search services' : 'Find a place or service'}
-            placeholderTextColor="#536987" />
-        )}
 
         {available && !detail && tab === 'Explore' && <View style={styles.filters}>
           {['All', ...new Set(places.map(item => item.category))].map(item => (
@@ -104,7 +108,7 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
             <Row key={item.id} title={item.name} subtitle={formatEventTime(item.startsAt)} onPress={() => open('event', item.id)} />
           ))}
           {upcomingEvents.length === 0 && <Text style={styles.body}>No upcoming events.</Text>}
-          {tab === 'Home' && <Row title="Student services" subtitle="Find campus offices" onPress={() => router.navigate('/services')} />}
+          {tab === 'Home' && <Row primary title="Student services" subtitle="Find campus offices" onPress={() => router.navigate('/services')} />}
         </>}
 
         {showEvents && tab === 'Home' && <>
@@ -132,7 +136,7 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
           <Text style={styles.body}>{event.description}</Text>
           <Text style={styles.body}>Organiser · {event.organiser}</Text>
           {!venue && event.externalVenue && <Text style={styles.body}>Venue · {event.externalVenue}</Text>}
-          {venue && <Row title="View venue" subtitle={venue.name} onPress={() => open('place', venue.id)} />}
+          {venue && <Row primary title="View venue" subtitle={venue.name} onPress={() => open('place', venue.id)} />}
           <Row title="Share event" subtitle="Open the phone’s share options" onPress={() => {
             void Share.share({ message: event.name + ' · ' + formatEventTime(event.startsAt) + ' · UNIPORT Campus Guide' })
               .catch(() => Alert.alert('Couldn’t share the event', 'Try again.'));
@@ -145,7 +149,7 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
           {service.contact && <Text style={styles.body}>{service.contact}</Text>}
           {officialUrl && <Row title="Open official website" subtitle="Opens in your browser"
             onPress={() => void openLink(officialUrl)} />}
-          {office && <Row title="View office" subtitle={office.name} onPress={() => open('place', office.id)} />}
+          {office && <Row primary title="View office" subtitle={office.name} onPress={() => open('place', office.id)} />}
         </>}
 
         {place && <>
@@ -154,7 +158,7 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
           <Text style={styles.body}>{place.landmark}</Text>
           <Text style={styles.section}>Directions</Text>
           <Text style={styles.body}>{place.directions}</Text>
-          {mapUrl && <Row title="Open in Maps" subtitle="Opens in your browser" onPress={() => void openLink(mapUrl)} />}
+          {mapUrl && <Row primary title="Open in Maps" subtitle="Opens in your browser" onPress={() => void openLink(mapUrl)} />}
         </>}
       </ScrollView>
     </SafeAreaView>
@@ -163,16 +167,25 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F5F8FD' },
-  content: { padding: 22, gap: 14, paddingBottom: 32 },
+  content: { padding: 20, gap: 14, paddingBottom: 36 },
+  header: { gap: 12, marginBottom: 2 },
+  homeHeader: { backgroundColor: '#123365', padding: 20, borderRadius: 22, gap: 10 },
+  homeTitle: { color: '#FFFFFF' },
+  previewLabel: { color: '#435D7A', fontSize: 13, fontWeight: '600' },
   photo: { width: '100%', aspectRatio: 1.85, borderRadius: 15, backgroundColor: '#D8EEFC' },
-  eyebrow: { color: '#123365', fontSize: 15, fontWeight: '800', letterSpacing: 2 },
-  heading: { color: '#123365', fontSize: 38, fontWeight: '800' },
+  eyebrow: { color: '#F7DB82', fontSize: 15, fontWeight: '800', letterSpacing: 2 },
+  heading: { color: '#123365', fontSize: 34, fontWeight: '800' },
   section: { color: '#123365', fontSize: 21, fontWeight: '700', marginTop: 8 },
   body: { color: '#354E70', fontSize: 16, lineHeight: 23 },
   label: { color: '#123365', fontSize: 17, fontWeight: '700' },
   rowText: { flex: 1, gap: 4 },
+  chevron: { color: '#435D7A', fontSize: 26, lineHeight: 28 },
+  primaryRow: { backgroundColor: '#123365', borderColor: '#123365' },
+  primaryTitle: { color: '#FFFFFF' },
+  primarySubtitle: { color: '#D8EEFC', fontSize: 14 },
+  pressed: { opacity: 0.82 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#FFFFFF',
-    borderColor: '#D9E5F2', borderWidth: 1, borderRadius: 15, padding: 16 },
+    borderColor: '#D9E5F2', borderWidth: 1, borderRadius: 16, padding: 16, minHeight: 64 },
   input: { backgroundColor: '#FFFFFF', borderColor: '#B8CDE3', borderWidth: 1, borderRadius: 12,
     padding: 14, color: '#123365', fontSize: 16 },
   badge: { alignSelf: 'flex-start', backgroundColor: '#F7DB82', color: '#342900', padding: 9,
