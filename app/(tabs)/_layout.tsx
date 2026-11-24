@@ -1,37 +1,39 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const icons = { home: '⌂', explore: '◎', events: '▦', services: '≡' };
-
-function tabIcon(icon: keyof typeof icons) {
-  return ({ color }: { color: string }) => (
-    <Text accessible={false} importantForAccessibility="no" style={[styles.icon, { color }]}>
-      {icons[icon]}
-    </Text>
+function tabIcon(active: keyof typeof Ionicons.glyphMap, inactive: keyof typeof Ionicons.glyphMap) {
+  return ({ color, focused }: { color: string; focused: boolean }) => (
+    <Ionicons accessible={false} aria-hidden name={focused ? active : inactive} color={color} size={23} />
   );
 }
 
 export default function TabLayout() {
-  return <Tabs screenOptions={{
-    headerShown: false,
-    tabBarActiveTintColor: '#FFFFFF',
-    tabBarActiveBackgroundColor: '#123365',
-    tabBarInactiveTintColor: '#354E70',
-    tabBarLabelPosition: 'below-icon',
-    tabBarLabelStyle: styles.label,
-    tabBarItemStyle: styles.item,
-    tabBarStyle: styles.bar,
-  }}>
-    <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: tabIcon('home') }} />
-    <Tabs.Screen name="explore" options={{ title: 'Explore', tabBarIcon: tabIcon('explore') }} />
-    <Tabs.Screen name="events" options={{ title: 'What’s On', tabBarIcon: tabIcon('events') }} />
-    <Tabs.Screen name="services" options={{ title: 'Services', tabBarIcon: tabIcon('services') }} />
-  </Tabs>;
+  const { bottom } = useSafeAreaInsets();
+
+  return (
+    <Tabs screenOptions={{
+      headerShown: false,
+      tabBarActiveTintColor: '#FFFFFF',
+      tabBarActiveBackgroundColor: '#092E5D',
+      tabBarInactiveTintColor: '#101A2E',
+      tabBarLabelPosition: 'below-icon',
+      tabBarLabelStyle: styles.label,
+      tabBarItemStyle: styles.item,
+      tabBarStyle: [styles.bar, { height: 69 + bottom }],
+      tabBarHideOnKeyboard: true,
+    }}>
+      <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: tabIcon('home', 'home-outline') }} />
+      <Tabs.Screen name="explore" options={{ title: 'Explore', tabBarIcon: tabIcon('compass', 'compass-outline') }} />
+      <Tabs.Screen name="events" options={{ title: 'What’s On', tabBarIcon: tabIcon('calendar', 'calendar-outline') }} />
+      <Tabs.Screen name="services" options={{ title: 'Services', tabBarIcon: tabIcon('layers', 'layers-outline') }} />
+    </Tabs>
+  );
 }
 
 const styles = StyleSheet.create({
-  bar: { backgroundColor: '#FFFFFF', borderTopColor: '#D9E5F2' },
-  item: { borderRadius: 12, marginHorizontal: 4, marginVertical: 3 },
+  bar: { backgroundColor: '#F5F8FE', borderTopColor: '#D7E2EF', paddingHorizontal: 8 },
+  item: { borderRadius: 15, overflow: 'hidden', marginHorizontal: 3, marginVertical: 5, minHeight: 44 },
   label: { fontSize: 11, fontWeight: '700' },
-  icon: { fontSize: 21, lineHeight: 23, fontWeight: '700' },
 });
