@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Alert, Linking, Pressable, ScrollView, Share, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Image, Linking, Pressable, ScrollView, Share, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { directionsUrl, formatEventTime, matches } from './content';
 import { useCampusContent } from './campus-content';
@@ -32,6 +32,8 @@ function Row({ title, subtitle, onPress }: { title: string; subtitle: string; on
 export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) {
   const router = useRouter();
   const { content: { places, events, services, announcements }, status, retry } = useCampusContent();
+  const showCampusPhoto = status === 'sample' && tab === 'Home' && !detail;
+  const showMeetupPhoto = status === 'sample' && detail?.kind === 'event' && detail.id === 'tech-meetup';
   const available = status === 'ready' || status === 'sample';
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('All');
@@ -91,6 +93,11 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
         {available && searching && !detail && ((!showPlaces || !visiblePlaces.length) && (!showServices || !visibleServices.length)) &&
           <Text style={styles.body}>No matches. Try another name.</Text>}
 
+        {showCampusPhoto && !searching && (
+          <Image source={require('../assets/preview/campus.jpg')} style={styles.photo}
+            accessible accessibilityLabel="Illustrative photo of students walking on campus" />
+        )}
+
         {showEvents && <>
           {tab === 'Home' && <Text style={styles.section}>Campus events</Text>}
           {upcomingEvents.map(item => (
@@ -117,6 +124,10 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
         </>}
 
         {event && <>
+          {showMeetupPhoto && (
+            <Image source={require('../assets/preview/meetup.jpg')} style={styles.photo}
+              accessible accessibilityLabel="Illustrative photo of a student tech meetup" />
+          )}
           <Text style={styles.badge}>{event.cost} · {formatEventTime(event.startsAt)}</Text>
           <Text style={styles.body}>{event.description}</Text>
           <Text style={styles.body}>Organiser · {event.organiser}</Text>
@@ -153,6 +164,7 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F5F8FD' },
   content: { padding: 22, gap: 14, paddingBottom: 32 },
+  photo: { width: '100%', aspectRatio: 1.85, borderRadius: 15, backgroundColor: '#D8EEFC' },
   eyebrow: { color: '#123365', fontSize: 15, fontWeight: '800', letterSpacing: 2 },
   heading: { color: '#123365', fontSize: 38, fontWeight: '800' },
   section: { color: '#123365', fontSize: 21, fontWeight: '700', marginTop: 8 },
