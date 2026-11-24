@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Alert, Linking, Pressable, ScrollView, Share, StatusBar, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { directionsUrl, formatEventTime, matches } from './content';
+import { directionsUrl, eventSchedule, matches, universityNewsUrl } from './content';
 import { useCampusContent } from './campus-content';
 
 const tabs = ['Home', 'Explore', 'What’s On', 'Services'] as const;
@@ -41,15 +41,17 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
   const venue = event && places.find(item => item.id === event.placeId);
   const office = service && places.find(item => item.id === service.placeId);
   const officialUrl = service?.officialUrl;
+  const eventSource = event?.sourceUrl;
+  const placeSource = place?.sourceUrl;
   const mapUrl = place?.mapUrl ?? (place?.mapQuery && directionsUrl(place.mapQuery));
-  const upcomingEvents = events.filter(item => Date.parse(item.endsAt ?? item.startsAt) >= Date.now());
+  const upcomingEvents = events.filter(item => Date.parse(item.endsAt ?? item.startsAt) > Date.now());
 
   function open(kind: Detail['kind'], id: string) {
     const pathname = kind === 'place' ? '/place/[id]' : kind === 'event' ? '/event/[id]' : '/service/[id]';
     router.push({ pathname, params: { id } });
   }
 
-  const visiblePlaces = places.filter(item => (tab !== 'Explore' || category === 'All' || item.category === category) && matches(query, [item.name, item.category, ...item.aliases]));
+  const visiblePlaces = places.filter(item => (tab !== 'Explore' || category === 'All' || item.category === category) && matches(query, [item.name, item.category, item.campusArea, item.landmark, ...item.aliases]));
   const visibleServices = services.filter(item => matches(query, [item.name, item.description, item.category]));
   const searching = query.trim().length > 0;
   const showPlaces = available && !detail && (tab === 'Explore' || (tab === 'Home' && searching));
@@ -62,7 +64,7 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
       <ScrollView key={detail ? detail.kind + detail.id : tab} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {!detail && tab === 'Home' && <Text style={styles.eyebrow}>UNIPORT</Text>}
         <Text accessibilityRole="header" style={styles.heading}>{place?.name ?? event?.name ?? service?.name ?? (detail ? (available ? 'Listing unavailable' : 'Campus Guide') : tab === 'Home' ? 'Campus Guide' : tab)}</Text>
-        {status === 'sample' && !detail && <Text style={styles.body}>Prototype · sample campus listings</Text>}
+        {status === 'sample' && !detail && <Text style={styles.body}>Campus directory and student resources</Text>}
         {status === 'loading' && <Text accessibilityLiveRegion="polite" style={styles.body}>Loading campus listings…</Text>}
         {status === 'error' && <Row title="Try again" subtitle="Campus listings couldn’t load." onPress={retry} />}
 
@@ -81,7 +83,7 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
           ))}
         </View>}
         {showPlaces && visiblePlaces.map(item => (
-          <Row key={item.id} title={item.name} subtitle={item.category} onPress={() => open('place', item.id)} />
+          <Row key={item.id} title={item.name} subtitle={item.campusArea} onPress={() => open('place', item.id)} />
         ))}
         {showServices && visibleServices.map(item => (
           <Row key={item.id} title={item.name} subtitle={item.description} onPress={() => open('service', item.id)} />
@@ -94,9 +96,11 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
         {showEvents && <>
           {tab === 'Home' && <Text style={styles.section}>Campus events</Text>}
           {upcomingEvents.map(item => (
-            <Row key={item.id} title={item.name} subtitle={formatEventTime(item.startsAt)} onPress={() => open('event', item.id)} />
+            <Row key={item.id} title={item.name} subtitle={eventSchedule(item)} onPress={() => open('event', item.id)} />
           ))}
-          {upcomingEvents.length === 0 && <Text style={styles.body}>No upcoming events.</Text>}
+          {upcomingEvents.length === 0 && <Text style={styles.body}>No upcoming events listed.</Text>}
+          {tab === 'What’s On' && <Row title="University news and events" subtitle="Check for new dates and venue updates"
+            onPress={() => void openLink(universityNewsUrl)} />}
           {tab === 'Home' && <Row title="Student services" subtitle="Find campus offices" onPress={() => router.navigate('/services')} />}
         </>}
 
@@ -117,13 +121,15 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
         </>}
 
         {event && <>
-          <Text style={styles.badge}>{event.cost} · {formatEventTime(event.startsAt)}</Text>
+          <Text style={styles.badge}>{event.cost} · {eventSchedule(event)}</Text>
           <Text style={styles.body}>{event.description}</Text>
           <Text style={styles.body}>Organiser · {event.organiser}</Text>
           {!venue && event.externalVenue && <Text style={styles.body}>Venue · {event.externalVenue}</Text>}
           {venue && <Row title="View venue" subtitle={venue.name} onPress={() => open('place', venue.id)} />}
+          {eventSource && <Row title="Read the university announcement" subtitle="Confirm the schedule before attending"
+            onPress={() => void openLink(eventSource)} />}
           <Row title="Share event" subtitle="Open the phone’s share options" onPress={() => {
-            void Share.share({ message: event.name + ' · ' + formatEventTime(event.startsAt) + ' · UNIPORT Campus Guide' })
+            void Share.share({ message: event.name + ' · ' + eventSchedule(event) + (eventSource ? '\n' + eventSource : ' · UNIPORT Campus Guide') })
               .catch(() => Alert.alert('Couldn’t share the event', 'Try again.'));
           }} />
         </>}
@@ -134,16 +140,19 @@ export function Guide({ tab = 'Home', detail }: { tab?: Tab; detail?: Detail }) 
           {service.contact && <Text style={styles.body}>{service.contact}</Text>}
           {officialUrl && <Row title="Open official website" subtitle="Opens in your browser"
             onPress={() => void openLink(officialUrl)} />}
-          {office && <Row title="View office" subtitle={office.name} onPress={() => open('place', office.id)} />}
+          {office && <Row title="View location" subtitle={office.name} onPress={() => open('place', office.id)} />}
         </>}
 
         {place && <>
           <Text style={styles.badge}>{place.category} · {place.campusArea}</Text>
-          <Text style={styles.section}>Nearest landmark</Text>
+          <Text style={styles.section}>Where to look</Text>
           <Text style={styles.body}>{place.landmark}</Text>
           <Text style={styles.section}>Directions</Text>
           <Text style={styles.body}>{place.directions}</Text>
-          {mapUrl && <Row title="Open in Maps" subtitle="Opens in your browser" onPress={() => void openLink(mapUrl)} />}
+          {mapUrl && <Row title="Open in Maps" subtitle={place.mapUrl ? "Opens in your browser" : "Check the suggested destination before travelling"}
+            onPress={() => void openLink(mapUrl)} />}
+          {placeSource && <Row title="University source" subtitle="See the original location information"
+            onPress={() => void openLink(placeSource)} />}
         </>}
       </ScrollView>
     </SafeAreaView>
