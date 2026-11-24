@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Campus Guide CMS</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script defer src="/supabase.js"></script>
+  <script type="module" src="/cms.mjs"></script>
+</head>
+<body>
+  <header><div><span class="brand">UNIPORT</span><h1>Campus Guide CMS</h1></div><button id="sign-out" hidden>Sign out</button></header>
+  <main>
+    <p id="notice" role="status" aria-live="polite" hidden></p>
+    <form id="login" hidden>
+      <h2>Admin sign-in</h2>
+      <label>Email<input name="email" type="email" autocomplete="username" required></label>
+      <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+      <button class="primary">Sign in</button>
+    </form>
+    <section id="dashboard" hidden>
+      <nav id="collections" aria-label="Content sections"></nav>
+      <div class="toolbar">
+        <h2 id="collection-title"></h2>
+        <button id="add" class="primary"></button>
+      </div>
+      <div class="workspace">
+        <section aria-label="Content listings">
+          <div class="filters">
+            <label>Search<input id="search" type="search" placeholder="Search listings"></label>
+            <label>Status<select id="status">
+              <option value="">All statuses</option><option value="draft">Draft</option>
+              <option value="published">Published</option><option value="archived">Archived</option>
+            </select></label>
+          </div>
+          <p id="count" aria-live="polite"></p>
+          <ul id="list"></ul>
+          <div id="pages" class="actions" aria-label="Pagination">
+            <button id="previous" type="button">Previous</button><button id="next" type="button">Next</button>
+          </div>
+        </section>
+        <form id="editor" hidden>
+          <div class="toolbar"><h3 id="editor-title"></h3><button id="close" type="button">Close</button></div>
+          <p id="editor-status"></p>
+          <div id="fields"></div>
+          <div class="actions">
+            <button type="submit" id="save" value="save" class="primary">Save</button>
+            <button type="submit" id="publish" value="published">Publish</button>
+            <button type="submit" id="draft" value="draft">Move to draft</button>
+            <button type="submit" id="archive" value="archived" formnovalidate>Archive</button>
+          </div>
+          <p id="editor-message" role="status" aria-live="polite" hidden></p>
+        </form>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

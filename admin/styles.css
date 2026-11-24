@@ -1,0 +1,33 @@
+:root { color-scheme: light; font: 16px/1.5 system-ui, sans-serif; color: #12294c; background: #eef4fb; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; background: #123365; color: white; padding: 1.2rem max(1rem, calc((100% - 1160px)/2)); }
+.brand { color: #f7db82; font-size: .8rem; font-weight: 800; letter-spacing: .15em; }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: clamp(1.35rem, 4vw, 2rem); }
+main { max-width: 1192px; padding: 1.25rem 1rem 3rem; margin: auto; }
+form, .workspace > section { padding: clamp(1rem, 3vw, 1.5rem); background: white; border: 1px solid #d0ddeb; border-radius: 1rem; }
+#login { max-width: 30rem; margin: 2rem auto; }
+nav, .actions, .toolbar, .filters { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+nav { margin-bottom: 1.2rem; }
+.toolbar { justify-content: space-between; margin-bottom: 1rem; }
+.workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+label { display: grid; gap: .35rem; margin-bottom: .8rem; font-weight: 650; }
+input, textarea, select, button { font: inherit; color: inherit; border: 1px solid #a8bdd5; background: white; border-radius: .55rem; padding: .52rem .7rem; min-width: 0; }
+textarea { resize: vertical; min-height: 5rem; }
+button { font-weight: 650; cursor: pointer; }
+button:hover { background: #e2effd; }
+button:disabled { opacity: .5; cursor: default; }
+:focus-visible { outline: 3px solid #236db2; outline-offset: 2px; }
+.primary, button[aria-current="true"] { background: #123365; border-color: #123365; color: white; }
+.primary:hover, button[aria-current="true"]:hover { background: #234b80; }
+ul { list-style: none; padding: 0; margin: .8rem 0; display: grid; gap: .45rem; }
+li button { width: 100%; display: flex; justify-content: space-between; gap: .6rem; text-align: left; overflow-wrap: anywhere; }
+.badge { border-radius: 1rem; background: #e3effb; color: #14335b; padding: .1rem .6rem; font-size: .82rem; text-transform: capitalize; align-self: flex-start; }
+.badge.published { background: #d7f1e2; color: #155a3a; }
+.badge.draft, .badge.scheduled { background: #fbe9b4; color: #5b3b00; }
+#notice, #editor-message { background: #dcecff; padding: .65rem .85rem; border-radius: .6rem; margin: .5rem 0 1rem; }
+.error { background: #ffe7e6 !important; color: #881e21; }
+#editor-status, #count { color: #435c7b; margin-bottom: .8rem; }
+@media (max-width: 760px) { .workspace { grid-template-columns: 1fr; } }

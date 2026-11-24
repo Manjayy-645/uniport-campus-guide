@@ -20,5 +20,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - run: node --test admin/fields.test.mjs
+      - run: node --check admin/cms.mjs
+      - run: test -s node_modules/@supabase/supabase-js/dist/umd/supabase.js
       - run: npm run typecheck
       - run: npm run bundle:android

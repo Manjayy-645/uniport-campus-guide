@@ -24,8 +24,15 @@ The bundled directory links to university sources and loads locally when both Su
    EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
    ```
 
-3. Add campus content in the Supabase dashboard and set its status to `published` when ready. Published notices also need a publication time. The app reads with the anonymous role.
+3. Publish campus content from the admin CMS. The app reads with the anonymous role.
 
-For the future admin dashboard, grant the server-managed `app_metadata.campus_admin` boolean to designated Supabase Auth users through the Auth Admin API. Admins can create, update, publish, and archive records. Admin changes to claims take effect when the access token refreshes. Use only a publishable key in the mobile app.
+## Campus Guide CMS
 
-The Next.js admin dashboard and SQLite sync are future milestones.
+1. In the Campus Guide Supabase project, create the administrator's email/password user. Through a trusted server-side Auth Admin API client, set that user’s `app_metadata.campus_admin` to the boolean `true`. Keep admin credentials and secret keys outside the repo. The database migration enforces this role for content writes.
+2. From the repository root, run `npm ci`, then `node --env-file-if-exists=.env.local admin/server.mjs`. Use Node.js 22 or later. The CMS accepts the same Supabase URL and publishable key as Expo, or separate `CAMPUS_SUPABASE_URL` and `CAMPUS_SUPABASE_PUBLISHABLE_KEY` variables.
+3. Open `http://127.0.0.1:4173` and sign in. Add a Place, save it as a draft, publish it, then select it as an event venue or service office. Search and status filters work across all four sections. The announcements editor supports scheduled publication and expiry. Event and announcement times use WAT.
+4. Reopen a mobile app configured for the same Supabase project to verify that it loads the published entry. Drafts and archived entries are hidden from the public mobile feed. The mobile app loads an updated snapshot on startup.
+
+The CMS uses the project’s existing Supabase JavaScript SDK. For a hosted instance, deploy the Node server behind HTTPS and set `HOST=0.0.0.0` and the hosting provider’s `PORT`. Admin sign-in is required on each page reload. Run `node --test admin/fields.test.mjs` to check validation and scheduling.
+
+SQLite sync is a future milestone.
